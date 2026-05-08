@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { connectToDatabase } from "@/lib/mongodb"; // Your existing DB connection
-import Blog from "@/lib/models/blog"; // Your Blog model
+import Blog from "@/lib/models/blog";// Your Blog model
+
+export const revalidate = 60; // Updates the page in the background every 60 seconds
 
 export const metadata = {
     title: "Journal & Insights | Irtaza Printers",
