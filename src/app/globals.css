@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  /* 1. We hardcode your cream background and dark text here */
+  --background: #ECEFF1;
+  --foreground: #121313;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 2. THE FIX: The @media dark mode block has been completely deleted! */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* 3. Let's make sure it uses your modern Geist font by default */
+  font-family: var(--font-sans), sans-serif;
+}
