@@ -167,7 +167,7 @@ export default function Navbar() {
             <div className="flex flex-col items-center gap-8 text-3xl font-serif tracking-widest text-neutral-900 uppercase">
               <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-neutral-500 transition-colors">Home</Link>
               <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-neutral-500 transition-colors">Shop</Link>
-              <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-neutral-500 transition-colors">Contact</Link>
+              <Link href="/contact-page" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-neutral-500 transition-colors">Contact</Link>
               <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-neutral-500 transition-colors">About</Link>
             </div>
             
