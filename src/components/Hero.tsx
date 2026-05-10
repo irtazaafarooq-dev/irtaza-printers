@@ -131,6 +131,17 @@ export default function Hero({ bestSellers = [] }: { bestSellers?: any[] }) {
   const handleNext = () => setCurrentIndex((prev) => (prev + 1) % displayProducts.length);
   const handlePrev = () => setCurrentIndex((prev) => prev === 0 ? displayProducts.length - 1 : prev - 1);
 
+  // --- NEW: AUTO-PLAY LOGIC (5 SECONDS) ---
+  useEffect(() => {
+    if (!isReady) return;
+  
+    const interval = setInterval(() => {
+      handleNext();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [currentIndex, displayProducts.length, isReady]); // Resets timer on manual click
+
   const letters = "HELLO".split("");
 
   return (
@@ -151,11 +162,9 @@ export default function Hero({ bestSellers = [] }: { bestSellers?: any[] }) {
       </div>
 
       {/* Foreground Container */}
-      {/* CHANGED: Reduced gap-6 to gap-2 on mobile to pull sections closer together */}
       <div className="w-full relative z-20 container mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center md:items-end gap-2 md:gap-0 h-full md:h-auto">
         
         {/* Left Side: Hook (ORDER 1 ON MOBILE) */}
-        {/* CHANGED: Reduced space-y-5 to space-y-3 on mobile */}
         <div className="order-1 md:order-none space-y-3 md:space-y-8 flex flex-col items-center text-center md:items-start md:text-left w-full md:w-1/3">
           <div className="space-y-2 md:space-y-4">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-serif text-neutral-900 tracking-tight drop-shadow-sm">
@@ -179,12 +188,8 @@ export default function Hero({ bestSellers = [] }: { bestSellers?: any[] }) {
         </div>
 
         {/* Product Image & Shadows (ORDER 2 ON MOBILE) */}
-        {/* CHANGED: Slightly reduced height on mobile (h-[40vh]) so everything fits perfectly together */}
         <div ref={imageRef} className="order-2 md:order-none relative md:absolute md:bottom-[-80px] md:left-1/2 md:-translate-x-1/2 w-full max-w-[320px] sm:max-w-[320px] md:max-w-2xl h-[40vh] sm:h-[40vh] md:h-[70vh] z-10 pointer-events-none flex items-center md:items-end justify-center my-0 md:m-0">
           
-          {/* ======================================================= */}
-          {/* NEW: MOBILE ONLY ARROWS ON SIDES OF IMAGE                 */}
-          {/* ======================================================= */}
           <motion.button 
             initial={{ opacity: 0, x: -10 }}
             animate={isReady ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
@@ -224,11 +229,9 @@ export default function Hero({ bestSellers = [] }: { bestSellers?: any[] }) {
           >
             <ArrowRight size={18} strokeWidth={1.5} />
           </motion.button>
-          {/* ======================================================= */}
         </div>
 
         {/* Right Side: Details (ORDER 3 ON MOBILE) */}
-        {/* CHANGED: Reduced space-y-6 to space-y-2 on mobile */}
         <div className="order-3 md:order-none flex flex-col items-center md:items-end text-center md:text-right space-y-2 md:space-y-12 w-full md:w-1/3">
           <div className="space-y-1 md:space-y-2">
             <p className="text-[10px] md:text-xs tracking-[0.2em] font-bold uppercase text-neutral-400">
@@ -257,7 +260,6 @@ export default function Hero({ bestSellers = [] }: { bestSellers?: any[] }) {
             </motion.div>
           </div>
 
-          {/* CHANGED: Added hidden md:flex here so these bottom arrows ONLY show on desktop now */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={isReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}

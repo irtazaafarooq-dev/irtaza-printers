@@ -14,17 +14,27 @@ export interface CartItem {
   paymentMethod: string; // The price for ONE of these (Base + Variant + Addons)
 }
 
+// NEW: Define what a Coupon looks like to keep TypeScript happy
+export interface CouponState {
+  code: string;
+  discountType: string;
+  discountValue: number;
+}
+
 // 2. Define what the Store can do
 interface CartState {
   cart: CartItem[];
-  isOpen: boolean; // <-- NEW
-  openCart: () => void; // <-- NEW
+  isOpen: boolean; 
+  coupon: CouponState | null; // <-- NEW
+  openCart: () => void; 
   closeCart: () => void;
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   getCartTotal: () => number;
+  applyCoupon: (couponData: CouponState) => void; // <-- NEW
+  removeCoupon: () => void; // <-- NEW
 }
 
 // 3. Create the actual Store
@@ -32,9 +42,16 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       cart: [],
-    isOpen: false, // <-- NEW
-      openCart: () => set({ isOpen: true }), // <-- NEW
+      isOpen: false, 
+      coupon: null, // <-- NEW: Starts with no coupon
+
+      openCart: () => set({ isOpen: true }), 
       closeCart: () => set({ isOpen: false }),
+
+      // --- NEW: COUPON ACTIONS ---
+      applyCoupon: (couponData) => set({ coupon: couponData }),
+      removeCoupon: () => set({ coupon: null }),
+
       // ADD TO CART
       addToCart: (item) => set((state) => {
         // Check if this EXACT item (same variant and addons) is already in the cart
@@ -64,9 +81,13 @@ export const useCartStore = create<CartState>()(
       })),
 
       // CLEAR CART (Used after successful checkout)
-      clearCart: () => set({ cart: [] }),
+      clearCart: () => set({ 
+        cart: [], 
+        coupon: null // <-- CHANGED: Also clear the coupon when order is finished!
+      }),
 
       // GET TOTAL PRICE (Helper function for the checkout page)
+      // NOTE: This gets the raw total. We will calculate the discount on the Cart page!
       getCartTotal: () => {
         return get().cart.reduce((total, item) => total + (item.price * item.quantity), 0);
       }

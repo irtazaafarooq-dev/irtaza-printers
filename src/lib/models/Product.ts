@@ -9,7 +9,11 @@ const productSchema = new mongoose.Schema({
   bgText: { type: String, required: true },
   title: { type: String, required: true },
   subtitle: { type: String, required: true },
+  
   basePrice: { type: Number, required: true, default: 0 },
+  // NEW: The original, higher price before the discount (e.g., 1500)
+  compareAtPrice: { type: Number, default: 0 }, 
+  
   paymentMethod: { type: String, enum: ["Any", "COD", "Online"], default: "Any" },
   customerNote: { type: String, default: "" },
   isBestSeller: { type: Boolean, default: false },
@@ -18,7 +22,7 @@ const productSchema = new mongoose.Schema({
   images: [{ type: String, required: true }],
   
   // Features (Material, Finish, etc.)
- features: [{
+  features: [{
     label: { type: String, required: true },
     value: { type: String, required: true }
   }],

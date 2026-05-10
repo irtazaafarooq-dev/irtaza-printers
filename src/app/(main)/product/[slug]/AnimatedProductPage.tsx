@@ -10,11 +10,14 @@ import { useCartStore } from "@/store/cartStore";
 
 export default function AnimatedProductPage({ product }: { product: any }) {
   // --- STATE ---
+  // 1. Packages (Mandatory, defaults to first)
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || { name: "Standard", price: 0 });
-
-  // NEW: State to hold multiple selected addons
-  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
-
+  
+  // 2. Addons (CHANGED: Array format, defaults to first addon, allows multiple)
+  const [selectedAddons, setSelectedAddons] = useState<any[]>(
+    product.addons?.length > 0 ? [product.addons[0]] : []
+  );
+  
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
@@ -52,21 +55,21 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   const handleAddToCart = () => {
     setIsAdding(true);
 
-    // 1. Generate a unique ID based on the specific variant and addons chosen
-    // This ensures if they buy a Standard box and a Premium box, they don't merge into one row.
+    // Generate unique ID based on ALL selected addons
     const addonIds = selectedAddons.map(a => a._id).sort().join('-');
     const uniqueCartId = `${product._id}-${selectedVariant._id}-${addonIds}`;
 
-    // 2. Build the payload matching our Zustand interface
+    const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
+
     const cartPayload = {
       id: uniqueCartId,
       productId: product._id,
       title: product.title,
       image: product.images[0] || "/placeholder.png",
       variant: selectedVariant,
-      addons: selectedAddons,
+      addons: selectedAddons, // Send the whole array of selected addons
       quantity: quantity,
-      price: (product.basePrice || 0) + selectedVariant.price + selectedAddons.reduce((sum: number, a: any) => sum + a.price, 0),
+      price: (product.basePrice || 0) + selectedVariant.price + addonsTotal,
       paymentMethod: product.paymentMethod || "Any",
       customerNote: product.customerNote || ""
     };
@@ -77,11 +80,10 @@ export default function AnimatedProductPage({ product }: { product: any }) {
         content_ids: [product._id],
         content_type: 'product',
         value: finalPrice,
-        currency: 'PKR' // Change to USD, EUR, etc., based on your store
+        currency: 'PKR' 
       });
     }
 
-    // 3. Send it to global state!
     addToCart(cartPayload);
 
     setTimeout(() => {
@@ -99,28 +101,38 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
 
-  // NEW: Addon Toggle Handler
+  // CHANGED: Toggle logic to allow multiple, but prevent deselecting the last one
   const toggleAddon = (addon: any) => {
-    const exists = selectedAddons.find((a) => a._id === addon._id);
-    if (exists) {
-      // If it's already selected, remove it
-      setSelectedAddons(selectedAddons.filter((a) => a._id !== addon._id));
+    const isSelected = selectedAddons.some((a) => a._id === addon._id);
+    
+    if (isSelected) {
+      // If it's already selected, only let them remove it if there's MORE than 1 selected.
+      // This enforces the "mandatory at least 1" rule.
+      if (selectedAddons.length > 1) {
+        setSelectedAddons(selectedAddons.filter((a) => a._id !== addon._id));
+      }
     } else {
-      // If it's not selected, add it
+      // If it's not selected, add it to the array
       setSelectedAddons([...selectedAddons, addon]);
     }
   };
 
-  // NEW: Calculate dynamic total price
-  // NEW: Calculate dynamic total price (Base + Package + Addons)
+  // --- DYNAMIC PRICE CALCULATIONS WITH SALE LOGIC ---
   const basePrice = product.basePrice || 0;
-  const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+  const comparePrice = product.compareAtPrice || 0; 
+  
+  // Calculate total price of ALL selected addons
+  const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
 
-  // Total = Base + Variant + Addons
+  // Final Active Price
   const finalPrice = (basePrice + selectedVariant.price + addonsTotal) * quantity;
+  
+  // Final Crossed-Out Price (Uses Admin price to ignore upgrades, or include them if you prefer)
+  // Currently set to include upgrades so the discount difference stays accurate
+  const isSale = comparePrice > basePrice;
+  const finalComparePrice = isSale ? ((comparePrice + selectedVariant.price + addonsTotal) * quantity) : 0;
 
   return (
-    // CHANGED: Adjusted padding top/bottom and horizontal padding for mobile
     <main ref={containerRef} className="relative min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 md:px-12 overflow-hidden flex items-center">
 
       {/* MASSIVE BACKGROUND TEXT */}
@@ -130,16 +142,13 @@ export default function AnimatedProductPage({ product }: { product: any }) {
         </h1>
       </div>
 
-      {/* CHANGED: Increased gap on mobile (gap-10) to clearly separate stacked sections */}
       <div className="relative z-10 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center mt-4 lg:mt-0">
 
         {/* --- LEFT COLUMN: DETAILS & FEATURES --- */}
         <div className="left-col lg:col-span-3 flex flex-col order-2 lg:order-1">
-          {/* CHANGED: Smoother mobile text scaling */}
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-neutral-900 tracking-tight leading-tight mb-2">
             {product.title}
           </h2>
-          {/* CHANGED: Adjusted subtitle size and margin for mobile */}
           <p className="text-sm sm:text-base md:text-xl text-neutral-500 uppercase tracking-widest font-bold mb-8 md:mb-12">
             {product.subtitle}
           </p>
@@ -159,12 +168,10 @@ export default function AnimatedProductPage({ product }: { product: any }) {
         </div>
 
         {/* --- CENTER COLUMN: IMAGE CAROUSEL --- */}
-        {/* CHANGED: Reduced height on mobile (h-[40vh]) so the add-to-cart button stays higher up */}
         <div className="center-image lg:col-span-6 flex justify-center items-center order-1 lg:order-2 relative h-[40vh] sm:h-[50vh] lg:h-[70vh] group">
           <div className="absolute bottom-[10%] w-[60%] h-8 bg-black/20 blur-2xl rounded-[100%] z-0" />
 
           <div className="relative w-full h-full z-10 scale-110 drop-shadow-2xl flex items-center justify-center">
-            {/* Map through ALL images so they cache immediately, but only show the active one */}
             {product.images?.map((img: string, idx: number) => (
               <Image 
                 key={idx}
@@ -174,15 +181,14 @@ export default function AnimatedProductPage({ product }: { product: any }) {
                 className={`object-contain object-center transition-opacity duration-500 ${
                   idx === currentImageIndex ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
                 }`}
-                priority={idx === 0} // Only prioritize the very first image to load fast
-                sizes="(max-width: 768px) 100vw, 50vw" // Tells Next.js to serve smaller files to phones
+                priority={idx === 0} 
+                sizes="(max-width: 768px) 100vw, 50vw" 
               />
             ))}
           </div>
 
           {product.images.length > 1 && (
             <>
-              {/* CHANGED: Removed 'opacity-0' on mobile so arrows are always visible on touch devices! */}
               <button
                 onClick={prevImage}
                 className="absolute left-0 lg:-left-10 z-20 p-2 md:p-3 bg-white/80 backdrop-blur-sm border border-neutral-200 text-neutral-900 rounded-full shadow-lg opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all hover:scale-110 hover:bg-white"
@@ -222,7 +228,6 @@ export default function AnimatedProductPage({ product }: { product: any }) {
                     }`}
                 >
                   <span className="font-medium text-center">{variant.name}</span>
-                  {/* Only show the + price if it costs extra! */}
                   {variant.price > 0 && (
                     <span className="text-[9px] md:text-[10px] opacity-70 mt-0.5">+ Rs. {variant.price.toLocaleString()}</span>
                   )}
@@ -231,10 +236,10 @@ export default function AnimatedProductPage({ product }: { product: any }) {
             </div>
           </div>
 
-          {/* 2. ADDONS (NEW!) */}
+          {/* 2. ADDONS (CHECKBOX BEHAVIOR WITH MANDATORY 1) */}
           {product.addons && product.addons.length > 0 && (
             <div className="mb-6 md:mb-8">
-              <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest">Optional Upgrades</p>
+              <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest">Select Upgrade(s)</p>
               <div className="space-y-2">
                 {product.addons.map((addon: any) => {
                   const isSelected = selectedAddons.some((a) => a._id === addon._id);
@@ -257,13 +262,25 @@ export default function AnimatedProductPage({ product }: { product: any }) {
             </div>
           )}
 
-          {/* 3. DYNAMIC PRICE (NEW!) */}
-          <div className="flex items-end justify-between md:justify-start gap-4 mb-6 md:mb-10 pb-6 md:pb-10 border-b border-neutral-200">
+          {/* 3. DYNAMIC PRICE (WITH SALE UI) */}
+          <div className="flex flex-col justify-start gap-1 mb-6 md:mb-10 pb-6 md:pb-10 border-b border-neutral-200">
             <p className="text-xs md:text-sm text-neutral-500 mb-1">Total Price</p>
-            {/* CHANGED: Scaled total price down for mobile */}
-            <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-neutral-900 leading-none">
-              Rs. {finalPrice.toLocaleString()}
-            </p>
+            <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-serif text-neutral-900 leading-none">
+                Rs. {finalPrice.toLocaleString()}
+              </p>
+              
+              {isSale && (
+                <div className="flex items-center gap-2">
+                  <p className="text-lg sm:text-xl md:text-2xl font-serif text-neutral-400 line-through leading-none">
+                    Rs. {finalComparePrice.toLocaleString()}
+                  </p>
+                  <span className="bg-red-100 text-red-600 text-[10px] md:text-xs font-bold px-2 py-1 rounded-md tracking-wider">
+                    SALE
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* CUSTOMER NOTE DISPLAY */}
@@ -278,7 +295,6 @@ export default function AnimatedProductPage({ product }: { product: any }) {
 
           {/* 4. CHECKOUT ACTIONS */}
           <div className="flex gap-3 md:gap-4 h-12 md:h-14">
-            {/* CHANGED: Fixed width on mobile (w-[100px]) so the add to cart button isn't crushed */}
             <div className="flex items-center justify-between border border-neutral-300 w-[100px] md:w-1/3 px-2 md:px-4">
               <button onClick={() => handleQtyChange("dec")} className="text-neutral-500 hover:text-neutral-900 p-1"><Minus size={14} className="md:w-4 md:h-4" /></button>
               <span className="text-sm font-bold text-neutral-900">{quantity}</span>

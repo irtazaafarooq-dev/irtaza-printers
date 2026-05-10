@@ -20,10 +20,14 @@ const OrderSchema = new mongoose.Schema({
   }],
   paymentMethod: { type: String, required: true, enum: ["COD", "Online"] },
   paymentProof: { type: String },
+  
+  // --- PRICING DATA ---
   subtotal: { type: Number, required: true },
+  discount: { type: Number, default: 0 },         // <-- NEW!
+  couponCode: { type: String, default: null },    // <-- NEW!
   shipping: { type: Number, required: true },
   total: { type: Number, required: true },
-  // Status helps you track it in the admin panel later!
+  
   status: { 
     type: String, 
     enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],

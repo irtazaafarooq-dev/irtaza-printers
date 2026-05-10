@@ -2,7 +2,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronLeft, MapPin, Phone, Mail, User, CreditCard } from "lucide-react";
+import { ChevronLeft, MapPin, Phone, Mail, User, CreditCard, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
 import OrderStatusUpdater from "./OrderStatusUpdater";
 import DeleteOrderButton from "./DeleteOrderButton";
@@ -10,10 +10,10 @@ import DeleteOrderButton from "./DeleteOrderButton";
 // 1. Change params type to a Promise
 export default async function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   // 2. Await the params to unlock the ID!
-  const { id } = await params; 
+  const { id } = await params;
 
   await connectToDatabase();
-  
+
   // 3. Use the unwrapped 'id' directly
   const order = await Order.findById(id).lean();
 
@@ -24,10 +24,10 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
   return (
     // CHANGED: Scaled padding for mobile screens
     <div className="p-4 sm:p-6 md:p-8 lg:p-12 max-w-7xl mx-auto space-y-6 md:space-y-8">
-      
+
       {/* HEADER */}
       {/* CHANGED: flex-col on mobile to prevent the delete button from squishing the title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4 sm:gap-0"> 
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-4 sm:gap-0">
         {/* CHANGED: items-start on mobile in case the title wraps */}
         <div className="flex items-start sm:items-center gap-3 md:gap-4">
           <Link href="/admin/orders" className="p-2 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors shrink-0 mt-1 sm:mt-0">
@@ -37,9 +37,9 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
             {/* CHANGED: flex-wrap ensures the status badge drops down if it runs out of space */}
             <div className="flex flex-wrap items-center gap-2 md:gap-3">
               <h1 className="text-xl sm:text-2xl font-serif text-neutral-900">Order #{order._id.toString().slice(-6).toUpperCase()}</h1>
-              <OrderStatusUpdater 
-                orderId={order._id.toString()} 
-                currentStatus={order.status} 
+              <OrderStatusUpdater
+                orderId={order._id.toString()}
+                currentStatus={order.status}
               />
             </div>
             <p className="text-[10px] sm:text-xs md:text-sm text-neutral-500 mt-1">
@@ -56,7 +56,7 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        
+
         {/* LEFT COLUMN: Items & Summary */}
         <div className="lg:col-span-2 space-y-6 md:space-y-8">
           {/* Items List */}
@@ -91,27 +91,41 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
           </div>
 
           {/* Pricing Summary */}
-          <div className="bg-white border border-neutral-200 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm">
-            <div className="space-y-3">
-              <div className="flex justify-between text-xs md:text-sm text-neutral-600">
-                <span>Subtotal</span>
-                <span>Rs. {order.subtotal.toLocaleString()}</span>
+          <div className="mt-6 pt-6 border-t border-neutral-200 space-y-3">
+            {/* Subtotal */}
+            <div className="flex justify-between text-sm text-neutral-600">
+              <span>Subtotal</span>
+              <span>Rs. {order.subtotal?.toLocaleString()}</span>
+            </div>
+
+            {/* NEW: Coupon Discount */}
+            {order.discount > 0 && (
+              <div className="flex justify-between items-center text-sm font-medium text-green-600 bg-green-50 p-2 rounded-lg -mx-2 px-2 border border-green-100">
+                <span className="flex items-center gap-1.5">
+                  <Tag size={14} />
+                  Coupon Used: <span className="font-bold">{order.couponCode}</span>
+                </span>
+                <span>- Rs. {order.discount?.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-xs md:text-sm text-neutral-600">
-                <span>Shipping</span>
-                <span>{order.shipping === 0 ? "Free" : `Rs. ${order.shipping.toLocaleString()}`}</span>
-              </div>
-              <div className="flex justify-between items-center pt-3 md:pt-4 border-t border-neutral-100 mt-3 md:mt-4">
-                <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-neutral-900">Total Paid</span>
-                <span className="text-lg md:text-xl font-serif text-neutral-900">Rs. {order.total.toLocaleString()}</span>
-              </div>
+            )}
+
+            {/* Shipping */}
+            <div className="flex justify-between text-sm text-neutral-600">
+              <span>Shipping</span>
+              <span>Rs. {order.shipping?.toLocaleString()}</span>
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between items-center pt-3 border-t border-neutral-200">
+              <span className="text-base font-bold text-neutral-900 uppercase tracking-widest">Total</span>
+              <span className="text-xl font-serif text-neutral-900">Rs. {order.total?.toLocaleString()}</span>
             </div>
           </div>
         </div>
 
         {/* RIGHT COLUMN: Customer Details */}
         <div className="space-y-6 md:space-y-8">
-          
+
           {/* Customer Info */}
           <div className="bg-white border border-neutral-200 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm">
             <h2 className="text-[11px] md:text-sm font-bold uppercase tracking-widest text-neutral-900 mb-5 md:mb-6">Customer Details</h2>

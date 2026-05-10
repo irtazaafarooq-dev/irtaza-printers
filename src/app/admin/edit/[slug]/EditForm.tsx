@@ -17,6 +17,7 @@ export default function EditForm({ initialData }: { initialData: any }) {
     title: initialData.title || "",
     subtitle: initialData.subtitle || "",
     basePrice: initialData.basePrice || 0,
+    compareAtPrice: initialData.compareAtPrice || 0, // <-- NEW: Load the sale price
     paymentMethod: initialData.paymentMethod || "Any",
     isBestSeller: initialData.isBestSeller || false,
     customerNote: initialData?.customerNote || "",
@@ -24,7 +25,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
 
   const [images, setImages] = useState<string[]>(initialData.images || []);
   
-  // Initialize features (fallback to one empty row if none exist)
   const [features, setFeatures] = useState(
     initialData.features?.length > 0 ? initialData.features : [{ label: "", value: "" }]
   );
@@ -32,7 +32,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
   const [addons, setAddons] = useState(initialData.addons || []);
 
   // --- HANDLERS ---
-  // New Handlers for Features
   const handleAddFeature = () => setFeatures([...features, { label: "", value: "" }]);
   const handleRemoveFeature = (index: number) => setFeatures(features.filter((_: any, i: number) => i !== index));
 
@@ -57,7 +56,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
     setIsSubmitting(true);
     setMessage("");
 
-    // ADDED features to the payload so it saves to the database!
     const productPayload = {
       ...formData,
       images,
@@ -92,13 +90,10 @@ export default function EditForm({ initialData }: { initialData: any }) {
   };
 
   return (
-    // CHANGED: Reduced mobile padding to maximize screen space
     <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto">
-      {/* CHANGED: Adjusted inner padding for mobile */}
       <div className="bg-white p-5 sm:p-8 md:p-12 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200">
         
         <div className="flex justify-between items-center mb-6 md:mb-8">
-            {/* CHANGED: Scaled title for mobile */}
             <h1 className="text-2xl md:text-3xl font-serif text-neutral-900">Edit Product</h1>
             <button onClick={() => router.push("/admin")} className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-500 hover:text-neutral-900 transition-colors">
                 Cancel
@@ -135,13 +130,18 @@ export default function EditForm({ initialData }: { initialData: any }) {
                 <input required type="text" value={formData.subtitle} onChange={e => setFormData({...formData, subtitle: e.target.value})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
 
+              {/* NEW: PRICE ROW */}
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Base Price (Rs.)</label>
                 <input required type="number" min="0" value={formData.basePrice} onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value) || 0})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
-              
-              {/* Payment Method Selector */}
               <div>
+                <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Compare at Price (Crossed Out)</label>
+                <input type="number" min="0" value={formData.compareAtPrice} onChange={e => setFormData({...formData, compareAtPrice: parseFloat(e.target.value) || 0})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" placeholder="e.g. 1500 (Optional)" />
+                <p className="text-[10px] text-neutral-500 mt-1">Leave as 0 if you do not want to show a sale.</p>
+              </div>
+              
+              <div className="md:col-span-2">
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Allowed Payment Method</label>
                 <select 
                   value={formData.paymentMethod} 
@@ -154,7 +154,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
                 </select>
               </div>
 
-              {/* --- CUSTOMER NOTE FIELD --- */}
               <div className="md:col-span-2">
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">
                   Important Customer Note (Optional)
@@ -171,7 +170,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
                 </p>
               </div>
 
-              {/* CHANGED: items-start prevents alignment issues if text wraps on mobile */}
               <div className="md:col-span-2 flex items-start sm:items-center gap-3 p-3 md:p-4 border border-neutral-200 rounded-lg bg-neutral-50 mt-2">
                 <input 
                   type="checkbox" 
@@ -227,7 +225,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
             </div>
             <div className="space-y-3 md:space-y-0">
               {features.map((feature: any, index: number) => (
-                // CHANGED: Flex-col on mobile creates a neat stacked card
                 <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end p-3 sm:p-0 bg-neutral-50 sm:bg-transparent border border-neutral-200 sm:border-none rounded-xl sm:rounded-none">
                   <div className="flex-1 w-full">
                     <label className="block text-[10px] md:text-xs font-medium text-neutral-500 mb-1">Heading (e.g., Material)</label>
@@ -255,7 +252,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
             </div>
             <div className="space-y-3 md:space-y-0">
               {variants.map((variant: any, index: number) => (
-                // CHANGED: Stacked mobile cards
                 <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end p-3 sm:p-0 bg-neutral-50 sm:bg-transparent border border-neutral-200 sm:border-none rounded-xl sm:rounded-none">
                   <div className="flex-1 w-full">
                     <label className="block text-[10px] md:text-xs font-medium text-neutral-500 mb-1">Package Name</label>
@@ -281,7 +277,6 @@ export default function EditForm({ initialData }: { initialData: any }) {
             </div>
             <div className="space-y-3 md:space-y-0">
               {addons.map((addon: any, index: number) => (
-                // CHANGED: Stacked mobile cards
                 <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end p-3 sm:p-0 bg-neutral-50 sm:bg-transparent border border-neutral-200 sm:border-none rounded-xl sm:rounded-none">
                   <div className="flex-1 w-full">
                     <label className="block text-[10px] md:text-xs font-medium text-neutral-500 mb-1">Upgrade Name</label>

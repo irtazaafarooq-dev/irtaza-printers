@@ -78,7 +78,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/blogs" onClick={closeSidebar} className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-800 hover:text-white transition-colors">
             <FileText size={18} /> <span className="text-sm font-medium">Blogs</span>
           </Link>
+
+         <Link href="/admin/coupons" onClick={closeSidebar} className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-800 hover:text-white transition-colors">
+            <FileText size={18} /> <span className="text-sm font-medium">Coupon</span>
+          </Link>
         </nav>
+
+        
 
         {/* Footer actions */}
         <div className="p-4 border-t border-neutral-800">

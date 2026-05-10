@@ -5,15 +5,16 @@ import { useCartStore } from "@/store/cartStore";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CheckCircle2, ChevronLeft, CreditCard } from "lucide-react";
+import { CheckCircle2, ChevronLeft, CreditCard, Tag } from "lucide-react";
 
 export default function CheckoutPage() {
-  const { cart, getCartTotal, clearCart } = useCartStore();
+  // CHANGED: Added 'coupon' from the store
+  const { cart, getCartTotal, clearCart, coupon } = useCartStore();
   const [isMounted, setIsMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
-  // Form State - ADDED: Country locked to Pakistan
+  // Form State
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,7 +28,6 @@ export default function CheckoutPage() {
   const requiresOnline = cart.some((item) => item.paymentMethod === "Online");
   const requiresCOD = cart.some((item) => item.paymentMethod === "COD");
   
-  // Determine initial payment selection based on rules
   const defaultPayment = requiresOnline ? "Online" : requiresCOD ? "COD" : "Online";
   const [paymentMethod, setPaymentMethod] = useState(defaultPayment);
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
@@ -43,16 +43,29 @@ export default function CheckoutPage() {
 
   if (!isMounted) return null;
 
-  // --- DYNAMIC SHIPPING LOGIC ---
+  // --- NEW: DYNAMIC MATH LOGIC WITH COUPONS ---
   const subtotal = getCartTotal();
-  let shipping = 0;
+  let discountAmount = 0;
   
-  if (subtotal <= 10000) {
-    // If order is under 10k, calculate shipping based on payment method
+  // Calculate discount if coupon exists
+  if (coupon) {
+    if (coupon.discountType === "percentage") {
+      discountAmount = subtotal * (coupon.discountValue / 100);
+    } else if (coupon.discountType === "fixed") {
+      discountAmount = coupon.discountValue;
+    }
+  }
+
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+
+  let shipping = 0;
+  // Shipping logic based on discounted subtotal
+  if (discountedSubtotal <= 10000) {
     shipping = paymentMethod === "Online" ? 200 : 275;
   }
   
-  const total = subtotal + shipping;
+  // Final Total calculation
+  const total = discountedSubtotal + shipping;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,7 +81,6 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // NEW VALIDATION: Force them to upload a screenshot if paying online!
     if (paymentMethod === "Online" && !paymentProof) {
       alert("Please upload your payment screenshot to proceed.");
       return;
@@ -76,18 +88,20 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
 
+    // CHANGED: Added discount and couponCode to the database payload
     const orderData = {
       customer: formData,
       items: cart,
       paymentMethod,
-      paymentProof, // <-- ADD IT HERE
+      paymentProof, 
       subtotal,
+      discount: discountAmount, // <--- Sent to DB
+      couponCode: coupon?.code || null, // <--- Sent to DB
       shipping,
       total,
     };
 
     try {
-      // Send the data to our new API endpoint
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,10 +111,9 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Success! Clear cart and show the confirmation screen
         setIsSubmitting(false);
         setOrderSuccess(true);
-        clearCart();
+        clearCart(); // This will now also clear the coupon!
         window.scrollTo(0, 0);
       } else {
         throw new Error(data.error || "Failed to place order");
@@ -115,7 +128,6 @@ export default function CheckoutPage() {
   // --- SUCCESS STATE ---
   if (orderSuccess) {
     return (
-      // CHANGED: Reduced mobile padding
       <main className="min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 flex items-center justify-center">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
@@ -142,7 +154,6 @@ export default function CheckoutPage() {
   // --- EMPTY CART STATE ---
   if (cart.length === 0) {
     return (
-      // CHANGED: Reduced mobile padding
       <main className="min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 flex flex-col items-center justify-center text-center">
         <h1 className="text-3xl md:text-4xl font-serif text-neutral-900 mb-4">Your Cart is Empty</h1>
         <Link href="/shop" className="text-sm border-b border-neutral-900 pb-1 font-medium">
@@ -153,7 +164,6 @@ export default function CheckoutPage() {
   }
 
   return (
-    // CHANGED: Safe top padding for transparent navbar
     <main className="min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 md:px-12">
       <div className="max-w-6xl mx-auto">
         
@@ -161,10 +171,9 @@ export default function CheckoutPage() {
           <ChevronLeft size={16} className="mr-1" /> Back to Shop
         </Link>
 
-        {/* CHANGED: Tighter gap on mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-20">
           
-          {/* RIGHT: ORDER SUMMARY (Moved to top on Mobile via order-1!) */}
+          {/* RIGHT: ORDER SUMMARY */}
           <div className="lg:col-span-5 order-1 lg:order-2 relative">
             <div className="lg:sticky top-32 bg-white border border-neutral-200 rounded-[2rem] p-5 md:p-8 shadow-sm">
               <h2 className="text-lg font-serif text-neutral-900 mb-4 md:mb-6">Order Summary</h2>
@@ -199,6 +208,15 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>Rs. {subtotal.toLocaleString()}</span>
                 </div>
+                
+                {/* CHANGED: Dynamic Discount Row */}
+                {coupon && (
+                  <div className="flex justify-between items-center text-xs md:text-sm text-green-600 font-medium">
+                    <span className="flex items-center gap-1"><Tag size={14} /> Code: {coupon.code}</span>
+                    <span>- Rs. {discountAmount.toLocaleString()}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center text-xs md:text-sm text-neutral-600">
                   <span>Shipping <span className="text-[9px] md:text-[10px] ml-1 bg-neutral-100 px-2 py-0.5 rounded-full">{paymentMethod}</span></span>
                   <span>{shipping === 0 ? "Free" : `Rs. ${shipping.toLocaleString()}`}</span>
@@ -212,7 +230,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* LEFT: CHECKOUT FORM (Moved to bottom on Mobile via order-2!) */}
+          {/* LEFT: CHECKOUT FORM */}
           <div className="lg:col-span-7 order-2 lg:order-1 mt-4 lg:mt-0">
             <h1 className="text-3xl md:text-4xl font-serif text-neutral-900 mb-6 md:mb-8">Checkout</h1>
             
@@ -233,7 +251,6 @@ export default function CheckoutPage() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                   <input required type="text" placeholder="City" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
-                  {/* Read-only Country Field */}
                   <input disabled type="text" value={formData.country} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-neutral-50 border border-neutral-200 rounded-xl outline-none text-neutral-500 cursor-not-allowed" />
                 </div>
               </div>
@@ -253,7 +270,6 @@ export default function CheckoutPage() {
                       </div>
                       <CreditCard size={20} className="text-neutral-700 shrink-0 md:w-6 md:h-6" />
                       <div className="flex-1 w-full">
-                        {/* CHANGED: Flex-col on mobile to prevent the badge from squishing the text */}
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                           <p className="font-bold text-neutral-900 text-xs md:text-sm">Online / Manual Transfer</p>
                           <span className="text-[9px] md:text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-200 w-fit">
@@ -264,25 +280,20 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    {/* EXPANDED DETAILS (Only shows if Online is selected) */}
+                    {/* EXPANDED DETAILS */}
                     {paymentMethod === "Online" && (
                       <div className="mt-4 pt-4 border-t border-neutral-200 space-y-4 animate-in fade-in slide-in-from-top-2">
-                        
-                        {/* Real Bank Details */}
                         <div className="bg-neutral-50 p-3 md:p-4 rounded-lg text-[11px] md:text-xs text-neutral-700 space-y-3 border border-neutral-200">
                           
-                          {/* Faysal Bank Info */}
                           <div className="space-y-1">
                             <p className="font-bold text-neutral-900 text-xs md:text-sm uppercase tracking-wider">FAYSAL BANK</p>
                             <p>Account Title: <span className="font-medium">IRTAZA PRINTERS</span></p>
                             <p>Account Number: <span className="font-medium">0186007000002649</span></p>
-                            {/* CHANGED: Added break-all to prevent IBAN from breaking layout on small phones */}
                             <p className="break-all">IBAN: <span className="font-medium">PK71FAYS0186007000002649</span></p>
                           </div>
 
                           <hr className="border-neutral-200" />
 
-                          {/* JazzCash / Easypaisa Info */}
                           <div className="space-y-1">
                             <p className="font-bold text-neutral-900 text-xs md:text-sm uppercase tracking-wider">JazzCash / Easypaisa</p>
                             <p>Account Title: <span className="font-medium">MUHAMMAD IRTAZA FAROOQ</span></p>
@@ -291,7 +302,6 @@ export default function CheckoutPage() {
 
                         </div>
 
-                        {/* File Upload Input */}
                         <div>
                           <label className="block text-[10px] md:text-xs font-bold text-neutral-900 mb-2 uppercase tracking-wider">
                             Upload Payment Screenshot *
@@ -300,7 +310,6 @@ export default function CheckoutPage() {
                             type="file" 
                             accept="image/*"
                             onChange={handleImageUpload}
-                            // CHANGED: Scaled down file button text for mobile
                             className="block w-full text-xs md:text-sm text-neutral-500 file:mr-3 md:file:mr-4 file:py-1.5 md:file:py-2 file:px-3 md:file:px-4 file:rounded-full file:border-0 file:text-[10px] md:file:text-xs file:font-bold file:bg-neutral-900 file:text-white hover:file:bg-neutral-800 cursor-pointer transition-colors"
                           />
                           {paymentProof && (
@@ -323,10 +332,8 @@ export default function CheckoutPage() {
                     </div>
                     <div className="w-5 h-5 md:w-6 md:h-6 shrink-0 border border-neutral-700 rounded-md flex items-center justify-center mt-0.5 md:mt-0"><span className="text-[8px] md:text-[10px] font-bold">Rs</span></div>
                     <div className="flex-1 w-full">
-                      {/* CHANGED: Flex-col on mobile to prevent the badge from squishing the text */}
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                         <p className="font-bold text-neutral-900 text-xs md:text-sm">Cash on Delivery</p>
-                         {/* Dynamic Shipping Badge */}
                          <span className="text-[9px] md:text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
                           Rs. 275 Shipping
                         </span>

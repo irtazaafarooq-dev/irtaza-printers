@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, CheckCircle2, Image as ImageIcon, X } from "lucide-react";
-import { CldUploadWidget } from "next-cloudinary"; // THE MAGIC CLOUDINARY WIDGET!
+import { CldUploadWidget } from "next-cloudinary"; 
 
 export default function AdminPortal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,12 +15,12 @@ export default function AdminPortal() {
     title: "",
     subtitle: "",
     basePrice: 0,
+    compareAtPrice: 0, // <-- NEW: Holds the Sale Price
     paymentMethod: "Any",
     isBestSeller: false,
     customerNote: "",
   });
 
-  // CHANGED: We now hold an ARRAY of images instead of just one!
   const [images, setImages] = useState<string[]>([]);
   const [variants, setVariants] = useState([{ name: "", price: 0 }]);
   const [addons, setAddons] = useState([{ name: "", price: 0 }]);
@@ -43,7 +43,6 @@ export default function AdminPortal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Safety check: Don't let them save a product with zero images!
     if (images.length === 0) {
       setMessage("Error: Please upload at least one image.");
       return;
@@ -55,7 +54,7 @@ export default function AdminPortal() {
     const productPayload = {
       ...formData,
       images,
-      features, // <-- Now we send your dynamic state!
+      features, 
       variants,
       addons
     };
@@ -71,7 +70,6 @@ export default function AdminPortal() {
 
       if (data.success) {
         setMessage("Product successfully added to database!");
-        // Optional: Reset form here
       } else {
         setMessage(`Error: ${data.error}`);
       }
@@ -83,12 +81,9 @@ export default function AdminPortal() {
   };
 
   return (
-    // CHANGED: Reduced mobile padding to maximize screen space
     <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto">
-      {/* CHANGED: Adjusted inner padding for mobile */}
       <div className="bg-white p-5 sm:p-8 md:p-12 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200">
         
-        {/* CHANGED: Scaled title for mobile */}
         <h1 className="text-2xl md:text-3xl font-serif text-neutral-900 mb-6 md:mb-8">Add New Product</h1>
 
         {message && (
@@ -121,13 +116,19 @@ export default function AdminPortal() {
                 <input required type="text" value={formData.subtitle} onChange={e => setFormData({...formData, subtitle: e.target.value})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
 
+              {/* NEW: PRICE ROW */}
               <div>
-                <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Base Price (Rs.)</label>
+                <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Actual Sale Price (Rs.)</label>
                 <input required type="number" min="0" value={formData.basePrice} onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value) || 0})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
+              </div>
+              <div>
+                <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Compare at Price (Crossed Out)</label>
+                <input type="number" min="0" value={formData.compareAtPrice} onChange={e => setFormData({...formData, compareAtPrice: parseFloat(e.target.value) || 0})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" placeholder="e.g. 1500 (Optional)" />
+                <p className="text-[10px] text-neutral-500 mt-1">Leave as 0 if you do not want to show a sale.</p>
               </div>
 
               {/* Payment Method Selector */}
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Allowed Payment Method</label>
                 <select 
                   value={formData.paymentMethod} 
@@ -140,7 +141,6 @@ export default function AdminPortal() {
                 </select>
               </div>
 
-              {/* --- CUSTOMER NOTE FIELD --- */}
               <div className="md:col-span-2">
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">
                   Important Customer Note (Optional)
@@ -157,7 +157,6 @@ export default function AdminPortal() {
                 </p>
               </div>
 
-              {/* CHANGED: items-start prevents alignment issues if text wraps on mobile */}
               <div className="md:col-span-2 flex items-start sm:items-center gap-3 p-3 md:p-4 border border-neutral-200 rounded-lg bg-neutral-50 mt-2">
                 <input 
                   type="checkbox" 
@@ -178,7 +177,6 @@ export default function AdminPortal() {
             <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-400 border-b pb-2">Product Images</h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              {/* Show uploaded images */}
               {images.map((imgUrl, idx) => (
                 <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-neutral-200 group bg-neutral-50">
                   <img src={imgUrl} alt={`Product ${idx}`} className="w-full h-full object-contain p-2" />
@@ -188,9 +186,8 @@ export default function AdminPortal() {
                 </div>
               ))}
 
-              {/* Cloudinary Upload Button */}
               <CldUploadWidget 
-                uploadPreset="irtaza-products" // YOUR EXACT PRESET NAME!
+                uploadPreset="irtaza-products" 
                 onSuccess={(result: any) => {
                   if (result.info && result.info.secure_url) {
                     setImages(prev => [...prev, result.info.secure_url]);
@@ -208,7 +205,6 @@ export default function AdminPortal() {
             <p className="text-[10px] md:text-xs text-neutral-500">You can upload multiple high-resolution images. The first image will be your main thumbnail.</p>
           </section>
 
-
           {/* --- DYNAMIC FEATURES --- */}
           <section className="space-y-4 md:space-y-6">
             <div className="flex justify-between items-end border-b pb-2">
@@ -217,7 +213,6 @@ export default function AdminPortal() {
             </div>
             <div className="space-y-3 md:space-y-0">
               {features.map((feature, index) => (
-                // CHANGED: Flex-col on mobile creates a neat stacked card for each feature
                 <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end p-3 sm:p-0 bg-neutral-50 sm:bg-transparent border border-neutral-200 sm:border-none rounded-xl sm:rounded-none">
                   <div className="flex-1 w-full">
                     <label className="block text-[10px] md:text-xs font-medium text-neutral-500 mb-1">Heading (e.g., Material)</label>
@@ -245,7 +240,6 @@ export default function AdminPortal() {
             </div>
             <div className="space-y-3 md:space-y-0">
               {variants.map((variant, index) => (
-                // CHANGED: Stacked mobile cards
                 <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end p-3 sm:p-0 bg-neutral-50 sm:bg-transparent border border-neutral-200 sm:border-none rounded-xl sm:rounded-none">
                   <div className="flex-1 w-full">
                     <label className="block text-[10px] md:text-xs font-medium text-neutral-500 mb-1">Package Name</label>
@@ -273,7 +267,6 @@ export default function AdminPortal() {
             </div>
             <div className="space-y-3 md:space-y-0">
               {addons.map((addon, index) => (
-                // CHANGED: Stacked mobile cards
                 <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end p-3 sm:p-0 bg-neutral-50 sm:bg-transparent border border-neutral-200 sm:border-none rounded-xl sm:rounded-none">
                   <div className="flex-1 w-full">
                     <label className="block text-[10px] md:text-xs font-medium text-neutral-500 mb-1">Upgrade Name</label>
