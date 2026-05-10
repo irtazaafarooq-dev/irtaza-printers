@@ -130,7 +130,7 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   // Final Crossed-Out Price (Uses Admin price to ignore upgrades, or include them if you prefer)
   // Currently set to include upgrades so the discount difference stays accurate
   const isSale = comparePrice > basePrice;
-  const finalComparePrice = isSale ? ((comparePrice + selectedVariant.price + addonsTotal) * quantity) : 0;
+  const finalComparePrice = isSale ? (comparePrice * quantity) : 0;
 
   return (
     <main ref={containerRef} className="relative min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 md:px-12 overflow-hidden flex items-center">
