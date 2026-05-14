@@ -10,10 +10,8 @@ import { useCartStore } from "@/store/cartStore";
 
 export default function AnimatedProductPage({ product }: { product: any }) {
   // --- STATE ---
-  // 1. Packages (Mandatory, defaults to first)
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || { name: "Standard", price: 0 });
   
-  // 2. Addons (CHANGED: Array format, defaults to first addon, allows multiple)
   const [selectedAddons, setSelectedAddons] = useState<any[]>(
     product.addons?.length > 0 ? [product.addons[0]] : []
   );
@@ -21,14 +19,18 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  
+  // Controls the main big image
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Controls which image the user has explicitly selected to buy!
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0); 
 
   // --- REFS & LENIS ---
   const containerRef = useRef<HTMLElement>(null);
   const lenis = useLenis();
   const addToCart = useCartStore((state) => state.addToCart);
 
-  // --- FORCE SCROLL TO TOP ---
   useLayoutEffect(() => {
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -41,10 +43,8 @@ export default function AnimatedProductPage({ product }: { product: any }) {
     }
   }, [lenis, product.slug]);
 
-  // --- ANIMATIONS ---
   useGSAP(() => {
     const tl = gsap.timeline();
-
     tl.from(".bg-text", { y: 100, opacity: 0, duration: 1, ease: "power3.out" })
       .from(".center-image", { scale: 0.9, opacity: 0, duration: 1, ease: "power3.out" }, "-=0.6")
       .from(".left-col > *", { x: -30, opacity: 0, duration: 0.8, stagger: 0.1, ease: "power2.out" }, "-=0.6")
@@ -55,19 +55,23 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   const handleAddToCart = () => {
     setIsAdding(true);
 
-    // Generate unique ID based on ALL selected addons
     const addonIds = selectedAddons.map(a => a._id).sort().join('-');
-    const uniqueCartId = `${product._id}-${selectedVariant._id}-${addonIds}`;
+    const imageVariantTag = product.useImageVariants ? `-img${selectedImageIndex}` : '';
+    const uniqueCartId = `${product._id}-${selectedVariant._id}-${addonIds}${imageVariantTag}`;
 
     const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
+
+    const finalAddons = product.useImageVariants 
+      ? [...selectedAddons, { name: `Style: Image #${selectedImageIndex + 1}`, price: 0 }]
+      : selectedAddons;
 
     const cartPayload = {
       id: uniqueCartId,
       productId: product._id,
       title: product.title,
-      image: product.images[0] || "/placeholder.png",
+      image: product.useImageVariants ? product.images[selectedImageIndex] : (product.images[0] || "/placeholder.png"),
       variant: selectedVariant,
-      addons: selectedAddons, // Send the whole array of selected addons
+      addons: finalAddons, 
       quantity: quantity,
       price: (product.basePrice || 0) + selectedVariant.price + addonsTotal,
       paymentMethod: product.paymentMethod || "Any",
@@ -101,41 +105,22 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
 
-  // CHANGED: Toggle logic to allow multiple, but prevent deselecting the last one
   const toggleAddon = (addon: any) => {
-    const isSelected = selectedAddons.some((a) => a._id === addon._id);
-    
-    if (isSelected) {
-      // If it's already selected, only let them remove it if there's MORE than 1 selected.
-      // This enforces the "mandatory at least 1" rule.
-      if (selectedAddons.length > 1) {
-        setSelectedAddons(selectedAddons.filter((a) => a._id !== addon._id));
-      }
-    } else {
-      // If it's not selected, add it to the array
-      setSelectedAddons([...selectedAddons, addon]);
-    }
+    // CHANGED: Strict Radio Behavior - Only ONE can be selected at a time!
+    setSelectedAddons([addon]);
   };
 
   // --- DYNAMIC PRICE CALCULATIONS WITH SALE LOGIC ---
   const basePrice = product.basePrice || 0;
   const comparePrice = product.compareAtPrice || 0; 
-  
-  // Calculate total price of ALL selected addons
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
-
-  // Final Active Price
   const finalPrice = (basePrice + selectedVariant.price + addonsTotal) * quantity;
-  
-  // Final Crossed-Out Price (Uses Admin price to ignore upgrades, or include them if you prefer)
-  // Currently set to include upgrades so the discount difference stays accurate
   const isSale = comparePrice > basePrice;
-  const finalComparePrice = isSale ? (comparePrice * quantity) : 0;
+  const finalComparePrice = isSale ? ((comparePrice + selectedVariant.price + addonsTotal) * quantity) : 0;
 
   return (
     <main ref={containerRef} className="relative min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 md:px-12 overflow-hidden flex items-center">
 
-      {/* MASSIVE BACKGROUND TEXT */}
       <div className="absolute top-20 left-0 w-full text-center z-0 overflow-hidden pointer-events-none select-none">
         <h1 className="bg-text text-[25vw] font-black text-neutral-100 leading-none tracking-tighter">
           {product.bgText}
@@ -144,7 +129,7 @@ export default function AnimatedProductPage({ product }: { product: any }) {
 
       <div className="relative z-10 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center mt-4 lg:mt-0">
 
-        {/* --- LEFT COLUMN: DETAILS & FEATURES --- */}
+        {/* --- LEFT COLUMN --- */}
         <div className="left-col lg:col-span-3 flex flex-col order-2 lg:order-1">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-neutral-900 tracking-tight leading-tight mb-2">
             {product.title}
@@ -211,35 +196,74 @@ export default function AnimatedProductPage({ product }: { product: any }) {
           )}
         </div>
 
-        {/* --- RIGHT COLUMN: ADD TO CART --- */}
+        {/* --- RIGHT COLUMN --- */}
         <div className="right-col lg:col-span-3 flex flex-col justify-center order-3 lg:order-3">
 
-          {/* 1. VARIANTS */}
-          <div className="mb-6 md:mb-8">
-            <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest">Available Packages</p>
-            <div className="grid grid-cols-2 gap-2">
-              {product.variants?.map((variant: any) => (
-                <button
-                  key={variant._id}
-                  onClick={() => setSelectedVariant(variant)}
-                  className={`flex flex-col items-center justify-center py-2.5 md:py-3 px-2 text-[11px] md:text-sm transition-colors border ${selectedVariant._id === variant._id
-                      ? "bg-neutral-900 text-white border-neutral-900"
-                      : "bg-transparent text-neutral-600 border-neutral-300 hover:border-neutral-500"
-                    }`}
-                >
-                  <span className="font-medium text-center">{variant.name}</span>
-                  {variant.price > 0 && (
-                    <span className="text-[9px] md:text-[10px] opacity-70 mt-0.5">+ Rs. {variant.price.toLocaleString()}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 2. ADDONS (CHECKBOX BEHAVIOR WITH MANDATORY 1) */}
-          {product.addons && product.addons.length > 0 && (
+          {/* ======================================================== */}
+          {/* DARAZ-STYLE IMAGE SELECTION GRID                         */}
+          {/* ======================================================== */}
+          {product.useImageVariants && product.images?.length > 0 && (
             <div className="mb-6 md:mb-8">
-              <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest">Select Upgrade(s)</p>
+              <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest flex items-center justify-between">
+                <span>Select Style</span>
+                <span className="text-neutral-500 font-normal">Image {selectedImageIndex + 1} of {product.images.length}</span>
+              </p>
+              
+              <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[160px] md:max-h-[220px] overflow-y-auto pr-1 scrollbar-hide">
+                {product.images.map((img: string, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedImageIndex(idx);
+                      setCurrentImageIndex(idx); // Instantly updates the big screen picture!
+                    }}
+                    className={`relative w-full aspect-[3/4] rounded-md overflow-hidden transition-all duration-200 ${
+                      selectedImageIndex === idx 
+                        ? "border-2 border-neutral-900 scale-105 shadow-md z-10" 
+                        : "border border-neutral-200 bg-white hover:border-neutral-400 opacity-80 hover:opacity-100"
+                    }`}
+                  >
+                    <Image 
+                      src={img} 
+                      alt={`Style ${idx + 1}`} 
+                      fill 
+                      className="object-contain p-1" 
+                      sizes="100px"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 1. VARIANTS */}
+          {product.variants && product.variants.length > 0 && product.variants[0].name !== "" && (
+            <div className="mb-6 md:mb-8">
+              <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest">Available Packages</p>
+              <div className="grid grid-cols-2 gap-2">
+                {product.variants.map((variant: any) => (
+                  <button
+                    key={variant._id}
+                    onClick={() => setSelectedVariant(variant)}
+                    className={`flex flex-col items-center justify-center py-2.5 md:py-3 px-2 text-[11px] md:text-sm transition-colors border ${selectedVariant._id === variant._id
+                        ? "bg-neutral-900 text-white border-neutral-900"
+                        : "bg-transparent text-neutral-600 border-neutral-300 hover:border-neutral-500"
+                      }`}
+                  >
+                    <span className="font-medium text-center">{variant.name}</span>
+                    {variant.price > 0 && (
+                      <span className="text-[9px] md:text-[10px] opacity-70 mt-0.5">+ Rs. {variant.price.toLocaleString()}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. TEXT ADDONS (STRICT RADIO BEHAVIOR) */}
+          {product.addons && product.addons.length > 0 && product.addons[0].name !== "" && (
+            <div className="mb-6 md:mb-8">
+              <p className="text-[10px] md:text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-widest">Select Upgrade</p>
               <div className="space-y-2">
                 {product.addons.map((addon: any) => {
                   const isSelected = selectedAddons.some((a) => a._id === addon._id);
@@ -254,7 +278,11 @@ export default function AnimatedProductPage({ product }: { product: any }) {
                         }`}
                     >
                       <span>{addon.name}</span>
-                      <span className="text-[10px] md:text-xs opacity-90">+ Rs. {addon.price.toLocaleString()}</span>
+                      
+                      {/* CHANGED: Price is hidden if it equals 0 ! */}
+                      {addon.price > 0 && (
+                        <span className="text-[10px] md:text-xs opacity-90">+ Rs. {addon.price.toLocaleString()}</span>
+                      )}
                     </button>
                   );
                 })}
@@ -262,7 +290,7 @@ export default function AnimatedProductPage({ product }: { product: any }) {
             </div>
           )}
 
-          {/* 3. DYNAMIC PRICE (WITH SALE UI) */}
+          {/* 3. DYNAMIC PRICE */}
           <div className="flex flex-col justify-start gap-1 mb-6 md:mb-10 pb-6 md:pb-10 border-b border-neutral-200">
             <p className="text-xs md:text-sm text-neutral-500 mb-1">Total Price</p>
             <div className="flex items-center gap-3 md:gap-4 flex-wrap">
@@ -283,7 +311,7 @@ export default function AnimatedProductPage({ product }: { product: any }) {
             </div>
           </div>
 
-          {/* CUSTOMER NOTE DISPLAY */}
+          {/* CUSTOMER NOTE */}
           {product.customerNote && (
             <div className="mt-4 mb-6 md:mb-8 p-4 bg-[#FDFBF7] border border-neutral-200 rounded-xl">
               <p className="text-xs md:text-sm text-neutral-800 leading-relaxed">

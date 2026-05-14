@@ -20,6 +20,7 @@ export default function EditForm({ initialData }: { initialData: any }) {
     compareAtPrice: initialData.compareAtPrice || 0, // <-- NEW: Load the sale price
     paymentMethod: initialData.paymentMethod || "Any",
     isBestSeller: initialData.isBestSeller || false,
+    useImageVariants: initialData.useImageVariants || false,
     customerNote: initialData?.customerNote || "",
   });
 
@@ -214,6 +215,21 @@ export default function EditForm({ initialData }: { initialData: any }) {
                   </button>
                 )}
               </CldUploadWidget>
+            </div>
+            <div className="flex items-start sm:items-center gap-3 p-3 md:p-4 border border-indigo-200 rounded-lg bg-indigo-50 mt-4">
+              <input 
+                type="checkbox" 
+                id="useImageVariantsAdd"
+                checked={formData.useImageVariants} 
+                onChange={e => setFormData({...formData, useImageVariants: e.target.checked})} 
+                className="w-5 h-5 mt-0.5 sm:mt-0 accent-indigo-600 cursor-pointer shrink-0"
+              />
+              <div className="flex flex-col">
+                <label htmlFor="useImageVariantsAdd" className="text-xs sm:text-sm font-bold text-indigo-900 cursor-pointer leading-tight">
+                  Enable Daraz-Style Image Selection Grid
+                </label>
+                <p className="text-[10px] text-indigo-700 mt-1">If checked, customers will pick their style by clicking the uploaded images (perfect for dummy books!).</p>
+              </div>
             </div>
           </section>
 

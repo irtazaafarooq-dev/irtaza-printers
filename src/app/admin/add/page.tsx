@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, CheckCircle2, Image as ImageIcon, X } from "lucide-react";
-import { CldUploadWidget } from "next-cloudinary"; 
+import { CldUploadWidget } from "next-cloudinary";
 
 export default function AdminPortal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,6 +18,7 @@ export default function AdminPortal() {
     compareAtPrice: 0, // <-- NEW: Holds the Sale Price
     paymentMethod: "Any",
     isBestSeller: false,
+    useImageVariants: false,
     customerNote: "",
   });
 
@@ -42,7 +43,7 @@ export default function AdminPortal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (images.length === 0) {
       setMessage("Error: Please upload at least one image.");
       return;
@@ -54,7 +55,7 @@ export default function AdminPortal() {
     const productPayload = {
       ...formData,
       images,
-      features, 
+      features,
       variants,
       addons
     };
@@ -83,7 +84,7 @@ export default function AdminPortal() {
   return (
     <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto">
       <div className="bg-white p-5 sm:p-8 md:p-12 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200">
-        
+
         <h1 className="text-2xl md:text-3xl font-serif text-neutral-900 mb-6 md:mb-8">Add New Product</h1>
 
         {message && (
@@ -94,45 +95,45 @@ export default function AdminPortal() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-10 md:space-y-12">
-          
+
           {/* --- BASIC INFO --- */}
           <section className="space-y-4 md:space-y-6">
             <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-400 border-b pb-2">Basic Info</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">URL Slug (e.g., bespoke-cards)</label>
-                <input required type="text" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value.toLowerCase()})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
+                <input required type="text" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value.toLowerCase() })} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Background Text (e.g., CARDS)</label>
-                <input required type="text" value={formData.bgText} onChange={e => setFormData({...formData, bgText: e.target.value.toUpperCase()})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
+                <input required type="text" value={formData.bgText} onChange={e => setFormData({ ...formData, bgText: e.target.value.toUpperCase() })} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Main Title (e.g., Bespoke Linen)</label>
-                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
+                <input required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Subtitle (e.g., Playing Cards)</label>
-                <input required type="text" value={formData.subtitle} onChange={e => setFormData({...formData, subtitle: e.target.value})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
+                <input required type="text" value={formData.subtitle} onChange={e => setFormData({ ...formData, subtitle: e.target.value })} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
 
               {/* NEW: PRICE ROW */}
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Actual Sale Price (Rs.)</label>
-                <input required type="number" min="0" value={formData.basePrice} onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value) || 0})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
+                <input required type="number" min="0" value={formData.basePrice} onChange={e => setFormData({ ...formData, basePrice: parseFloat(e.target.value) || 0 })} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Compare at Price (Crossed Out)</label>
-                <input type="number" min="0" value={formData.compareAtPrice} onChange={e => setFormData({...formData, compareAtPrice: parseFloat(e.target.value) || 0})} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" placeholder="e.g. 1500 (Optional)" />
+                <input type="number" min="0" value={formData.compareAtPrice} onChange={e => setFormData({ ...formData, compareAtPrice: parseFloat(e.target.value) || 0 })} className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors" placeholder="e.g. 1500 (Optional)" />
                 <p className="text-[10px] text-neutral-500 mt-1">Leave as 0 if you do not want to show a sale.</p>
               </div>
 
               {/* Payment Method Selector */}
               <div className="md:col-span-2">
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">Allowed Payment Method</label>
-                <select 
-                  value={formData.paymentMethod} 
-                  onChange={e => setFormData({...formData, paymentMethod: e.target.value})} 
+                <select
+                  value={formData.paymentMethod}
+                  onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
                   className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 bg-white transition-colors"
                 >
                   <option value="Any">Both (COD & Online Payment)</option>
@@ -145,12 +146,12 @@ export default function AdminPortal() {
                 <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5 md:mb-2">
                   Important Customer Note (Optional)
                 </label>
-                <input 
-                  type="text" 
-                  value={formData.customerNote} 
-                  onChange={e => setFormData({...formData, customerNote: e.target.value})} 
-                  className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors bg-white" 
-                  placeholder="e.g., Note: Send your photos through WhatsApp number..." 
+                <input
+                  type="text"
+                  value={formData.customerNote}
+                  onChange={e => setFormData({ ...formData, customerNote: e.target.value })}
+                  className="w-full border border-neutral-300 rounded-lg p-3 text-sm md:text-base outline-none focus:border-neutral-900 transition-colors bg-white"
+                  placeholder="e.g., Note: Send your photos through WhatsApp number..."
                 />
                 <p className="text-[10px] md:text-xs text-neutral-500 mt-1">
                   This will be displayed prominently on the product page. Leave blank if not needed.
@@ -158,11 +159,11 @@ export default function AdminPortal() {
               </div>
 
               <div className="md:col-span-2 flex items-start sm:items-center gap-3 p-3 md:p-4 border border-neutral-200 rounded-lg bg-neutral-50 mt-2">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   id="bestSellerAdd"
-                  checked={formData.isBestSeller} 
-                  onChange={e => setFormData({...formData, isBestSeller: e.target.checked})} 
+                  checked={formData.isBestSeller}
+                  onChange={e => setFormData({ ...formData, isBestSeller: e.target.checked })}
                   className="w-5 h-5 mt-0.5 sm:mt-0 accent-neutral-900 cursor-pointer shrink-0"
                 />
                 <label htmlFor="bestSellerAdd" className="text-xs sm:text-sm font-bold text-neutral-900 cursor-pointer leading-tight">
@@ -175,7 +176,7 @@ export default function AdminPortal() {
           {/* --- MULTIPLE IMAGE UPLOAD (CLOUDINARY) --- */}
           <section className="space-y-4 md:space-y-6">
             <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-400 border-b pb-2">Product Images</h2>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {images.map((imgUrl, idx) => (
                 <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-neutral-200 group bg-neutral-50">
@@ -186,8 +187,8 @@ export default function AdminPortal() {
                 </div>
               ))}
 
-              <CldUploadWidget 
-                uploadPreset="irtaza-products" 
+              <CldUploadWidget
+                uploadPreset="irtaza-products"
                 onSuccess={(result: any) => {
                   if (result.info && result.info.secure_url) {
                     setImages(prev => [...prev, result.info.secure_url]);
@@ -203,13 +204,28 @@ export default function AdminPortal() {
               </CldUploadWidget>
             </div>
             <p className="text-[10px] md:text-xs text-neutral-500">You can upload multiple high-resolution images. The first image will be your main thumbnail.</p>
+            <div className="flex items-start sm:items-center gap-3 p-3 md:p-4 border border-indigo-200 rounded-lg bg-indigo-50 mt-4">
+              <input
+                type="checkbox"
+                id="useImageVariantsAdd"
+                checked={formData.useImageVariants}
+                onChange={e => setFormData({ ...formData, useImageVariants: e.target.checked })}
+                className="w-5 h-5 mt-0.5 sm:mt-0 accent-indigo-600 cursor-pointer shrink-0"
+              />
+              <div className="flex flex-col">
+                <label htmlFor="useImageVariantsAdd" className="text-xs sm:text-sm font-bold text-indigo-900 cursor-pointer leading-tight">
+                  Enable Daraz-Style Image Selection Grid
+                </label>
+                <p className="text-[10px] text-indigo-700 mt-1">If checked, customers will pick their style by clicking the uploaded images (perfect for dummy books!).</p>
+              </div>
+            </div>
           </section>
 
           {/* --- DYNAMIC FEATURES --- */}
           <section className="space-y-4 md:space-y-6">
             <div className="flex justify-between items-end border-b pb-2">
               <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-400">Features (Text Only)</h2>
-              <button type="button" onClick={handleAddFeature} className="text-[10px] md:text-xs text-neutral-900 font-bold flex items-center gap-1 hover:underline"><Plus size={14}/> Add Feature</button>
+              <button type="button" onClick={handleAddFeature} className="text-[10px] md:text-xs text-neutral-900 font-bold flex items-center gap-1 hover:underline"><Plus size={14} /> Add Feature</button>
             </div>
             <div className="space-y-3 md:space-y-0">
               {features.map((feature, index) => (
@@ -224,7 +240,7 @@ export default function AdminPortal() {
                   </div>
                   {features.length > 1 && (
                     <button type="button" onClick={() => handleRemoveFeature(index)} className="w-full sm:w-auto p-3 text-red-500 bg-white sm:bg-transparent border border-red-100 sm:border-none hover:bg-red-50 rounded-lg sm:mb-[2px] flex items-center justify-center gap-2">
-                      <Trash2 size={18}/> <span className="sm:hidden text-xs font-bold">Remove</span>
+                      <Trash2 size={18} /> <span className="sm:hidden text-xs font-bold">Remove</span>
                     </button>
                   )}
                 </div>
@@ -236,7 +252,7 @@ export default function AdminPortal() {
           <section className="space-y-4 md:space-y-6">
             <div className="flex justify-between items-end border-b pb-2">
               <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-400">Variants (Packages)</h2>
-              <button type="button" onClick={handleAddVariant} className="text-[10px] md:text-xs text-neutral-900 font-bold flex items-center gap-1 hover:underline"><Plus size={14}/> Add Variant</button>
+              <button type="button" onClick={handleAddVariant} className="text-[10px] md:text-xs text-neutral-900 font-bold flex items-center gap-1 hover:underline"><Plus size={14} /> Add Variant</button>
             </div>
             <div className="space-y-3 md:space-y-0">
               {variants.map((variant, index) => (
@@ -251,7 +267,7 @@ export default function AdminPortal() {
                   </div>
                   {variants.length > 1 && (
                     <button type="button" onClick={() => handleRemoveVariant(index)} className="w-full sm:w-auto p-3 text-red-500 bg-white sm:bg-transparent border border-red-100 sm:border-none hover:bg-red-50 rounded-lg sm:mb-[2px] flex items-center justify-center gap-2">
-                      <Trash2 size={18}/> <span className="sm:hidden text-xs font-bold">Remove</span>
+                      <Trash2 size={18} /> <span className="sm:hidden text-xs font-bold">Remove</span>
                     </button>
                   )}
                 </div>
@@ -263,7 +279,7 @@ export default function AdminPortal() {
           <section className="space-y-4 md:space-y-6">
             <div className="flex justify-between items-end border-b pb-2">
               <h2 className="text-xs md:text-sm font-bold uppercase tracking-widest text-neutral-400">Addons (Upgrades)</h2>
-              <button type="button" onClick={handleAddAddon} className="text-[10px] md:text-xs text-neutral-900 font-bold flex items-center gap-1 hover:underline"><Plus size={14}/> Add Addon</button>
+              <button type="button" onClick={handleAddAddon} className="text-[10px] md:text-xs text-neutral-900 font-bold flex items-center gap-1 hover:underline"><Plus size={14} /> Add Addon</button>
             </div>
             <div className="space-y-3 md:space-y-0">
               {addons.map((addon, index) => (
@@ -277,7 +293,7 @@ export default function AdminPortal() {
                     <input required type="number" value={addon.price} onChange={e => { const newA = [...addons]; newA[index].price = parseFloat(e.target.value); setAddons(newA); }} className="w-full border border-neutral-300 rounded-lg p-3 text-sm bg-white" />
                   </div>
                   <button type="button" onClick={() => handleRemoveAddon(index)} className="w-full sm:w-auto p-3 text-red-500 bg-white sm:bg-transparent border border-red-100 sm:border-none hover:bg-red-50 rounded-lg sm:mb-[2px] flex items-center justify-center gap-2">
-                    <Trash2 size={18}/> <span className="sm:hidden text-xs font-bold">Remove</span>
+                    <Trash2 size={18} /> <span className="sm:hidden text-xs font-bold">Remove</span>
                   </button>
                 </div>
               ))}

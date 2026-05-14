@@ -20,6 +20,8 @@ const productSchema = new mongoose.Schema({
   
   // CHANGED: Now accepts an array of multiple image URLs from Cloudinary
   images: [{ type: String, required: true }],
+
+  useImageVariants: { type: Boolean, default: false },
   
   // Features (Material, Finish, etc.)
   features: [{
