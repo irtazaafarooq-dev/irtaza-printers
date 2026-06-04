@@ -61,7 +61,7 @@ export default function CheckoutPage() {
   let shipping = 0;
   // Shipping logic based on discounted subtotal
   if (discountedSubtotal <= 10000) {
-    shipping = paymentMethod === "Online" ? 200 : 275;
+    shipping = paymentMethod === "Online" ? 0 : 0; // Free shipping for both methods
   }
   
   // Final Total calculation
@@ -273,7 +273,7 @@ export default function CheckoutPage() {
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                           <p className="font-bold text-neutral-900 text-xs md:text-sm">Online / Manual Transfer</p>
                           <span className="text-[9px] md:text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-200 w-fit">
-                            Rs. 200 Shipping
+                            Free Shipping
                           </span>
                         </div>
                         <p className="text-[10px] md:text-xs text-neutral-500 mt-1 md:mt-0">Pay via Bank Transfer, JazzCash, or EasyPaisa.</p>
@@ -335,7 +335,7 @@ export default function CheckoutPage() {
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                         <p className="font-bold text-neutral-900 text-xs md:text-sm">Cash on Delivery</p>
                          <span className="text-[9px] md:text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
-                          Rs. 275 Shipping
+                              Free Shipping
                         </span>
                       </div>
                       <p className="text-[10px] md:text-xs text-neutral-500 mt-1 md:mt-0">Pay in cash when your order arrives.</p>
