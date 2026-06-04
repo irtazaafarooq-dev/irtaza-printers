@@ -18,25 +18,20 @@ export async function POST(req: Request) {
       await fetch("https://app.wanotifier.com/api/v1/notifications/DjE84i6buK?key=fcypmY3WgaOJlNFN4fVOxINfGpuY9o", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.WANOTIFIER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          to: "923218442114", // Keep your phone number here
-          type: "template",
-          template: {
-            name: "order_alert", 
-            language: { code: "en" },
-            components: [
-              {
-                type: "body",
-                parameters: [
-                  { type: "text", text: newOrder._id.toString().slice(-6).toUpperCase() },
-                  { type: "text", text: newOrder.total.toLocaleString() }
-                ]
-              }
+          data: {
+            body_variables: [
+              newOrder._id.toString().slice(-6).toUpperCase(), // This replaces {{1}}
+              newOrder.total.toLocaleString()                  // This replaces {{2}}
             ]
-          }
+          },
+          recipients: [
+            {
+              whatsapp_number: "+923218442114" // Formatted exactly like the example
+            }
+          ]
         })
       });
     } catch (waError) {
