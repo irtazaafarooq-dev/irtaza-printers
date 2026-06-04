@@ -22,7 +22,7 @@ export async function POST(req: Request) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          to: "923084445261", // Keep your phone number here
+          to: "923218442114", // Keep your phone number here
           type: "template",
           template: {
             name: "order_alert", 
