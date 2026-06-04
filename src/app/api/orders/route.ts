@@ -1,30 +1,28 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Order from "@/lib/models/Order";
-import nodemailer from "nodemailer"; // <-- NEW: Import Nodemailer
+import nodemailer from "nodemailer";
 
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
 
-    // Grab the data sent from the checkout page
     const body = await req.json();
-    
-    // Create and save the new order to MongoDB
     const newOrder = await Order.create(body);
 
     // ===================================================================
-    // 1. SEND WHATSAPP NOTIFICATION VIA WANOTIFIER (Admin)
+    // 1. SEND WHATSAPP NOTIFICATION VIA WANOTIFIER
     // ===================================================================
     try {
-      await fetch("https://api.wanotifier.com/v1/messages/send", {
+      // ⚠️ IMPORTANT: Replace this URL with your unique WANotifier Webhook URL
+      await fetch("https://app.wanotifier.com/api/v1/notifications/DjE84i6buK?key=fcypmY3WgaOJlNFN4fVOxINfGpuY9o", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${process.env.WANOTIFIER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          to: "923084445261", 
+          to: "923084445261", // Keep your phone number here
           type: "template",
           template: {
             name: "order_alert", 
@@ -46,10 +44,9 @@ export async function POST(req: Request) {
     }
 
     // ===================================================================
-    // 2. NEW: SEND CONFIRMATION EMAIL TO CUSTOMER
+    // 2. SEND CONFIRMATION EMAIL TO CUSTOMER
     // ===================================================================
     try {
-      // Configure the email transporter using your business email credentials
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST, 
         port: 465,
@@ -60,14 +57,14 @@ export async function POST(req: Request) {
         },
       });
 
-      // Draft the email content
       const mailOptions = {
-        from: `"Irtaza Printers" <${process.env.EMAIL_USER}>`, // Looks like: Irtaza Printers <info@irtazaprinters.com>
-        to: newOrder.email, // Sends to the customer's email from the checkout form
+        from: `"Irtaza Printers" <${process.env.EMAIL_USER}>`, 
+        // CHANGED: Now successfully targets the email inside the customer object
+        to: newOrder.customer.email, 
         subject: `Order Confirmation - #${newOrder._id.toString().slice(-6).toUpperCase()}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 10px;">
-            <h2 style="color: #171717;">Thank you for your order, ${newOrder.name}!</h2>
+            <h2 style="color: #171717;">Thank you for your order, ${newOrder.customer.name}!</h2>
             <p style="color: #525252;">We have successfully received your order and are currently processing it. Here are your order details:</p>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
@@ -83,14 +80,12 @@ export async function POST(req: Request) {
         `,
       };
 
-      // Send the email
       await transporter.sendMail(mailOptions);
     } catch (emailError) {
       console.error("Email Sending Failed:", emailError);
     }
     // ===================================================================
 
-    // Return a success message with the order ID
     return NextResponse.json({ success: true, orderId: newOrder._id }, { status: 201 });
 
   } catch (error) {
