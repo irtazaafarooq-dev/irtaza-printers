@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle2, ChevronLeft, CreditCard, Tag } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 
 export default function CheckoutPage() {
   // CHANGED: Added 'coupon' from the store
@@ -88,15 +89,14 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
 
-    // CHANGED: Added discount and couponCode to the database payload
     const orderData = {
       customer: formData,
       items: cart,
       paymentMethod,
       paymentProof, 
       subtotal,
-      discount: discountAmount, // <--- Sent to DB
-      couponCode: coupon?.code || null, // <--- Sent to DB
+      discount: discountAmount,
+      couponCode: coupon?.code || null,
       shipping,
       total,
     };
@@ -111,6 +111,48 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (response.ok) {
+        
+        // ===================================================================
+        // 🚀 META PIXEL & CONVERSIONS API TRACKING
+        // ===================================================================
+        try {
+          const uniqueEventId = uuidv4(); 
+
+          // Format phone number to ensure it starts with a '+' symbol
+          const formattedPhone = formData.phone.startsWith('+') ? formData.phone : `+${formData.phone}`;
+
+          const eventPayload = {
+            eventName: 'Purchase',
+            eventId: uniqueEventId,
+            eventSourceUrl: window.location.href,
+            userData: {
+              email: formData.email, 
+              phone: formattedPhone  
+            },
+            customData: {
+              currency: 'PKR',
+              value: total // Uses the exact total calculated in your cart
+            }
+          };
+
+          // A. Send to Browser Pixel (Frontend)
+          if (typeof window !== 'undefined' && window.fbq) {
+            window.fbq('track', 'Purchase', eventPayload.customData, { eventID: uniqueEventId });
+          }
+
+          // B. Send to your Next.js Server-Side Route (Backend)
+          await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventPayload),
+          });
+
+        } catch (trackingError) {
+          // If tracking fails, it logs the error but DOES NOT stop the checkout
+          console.error("Meta Tracking Failed:", trackingError);
+        }
+        // ===================================================================
+
         setIsSubmitting(false);
         setOrderSuccess(true);
         clearCart(); // This will now also clear the coupon!
