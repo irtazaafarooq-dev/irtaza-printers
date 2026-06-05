@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useLenis } from "@studio-freight/react-lenis";
 import { useCartStore } from "@/store/cartStore";
+import { v4 as uuidv4 } from "uuid";
 
 export default function AnimatedProductPage({ product }: { product: any }) {
   // --- STATE ---
@@ -52,13 +53,12 @@ export default function AnimatedProductPage({ product }: { product: any }) {
   }, { scope: containerRef });
 
   // --- HANDLERS ---
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     setIsAdding(true);
 
     const addonIds = selectedAddons.map(a => a._id).sort().join('-');
     const imageVariantTag = product.useImageVariants ? `-img${selectedImageIndex}` : '';
     const uniqueCartId = `${product._id}-${selectedVariant._id}-${addonIds}${imageVariantTag}`;
-
     const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
 
     const finalAddons = product.useImageVariants 
@@ -78,6 +78,8 @@ export default function AnimatedProductPage({ product }: { product: any }) {
       customerNote: product.customerNote || ""
     };
 
+    // 1. Send to Browser Pixel
+    const eventId = uuidv4();
     if (typeof window !== "undefined" && window.fbq) {
       window.fbq('track', 'AddToCart', {
         content_name: product.title,
@@ -85,7 +87,27 @@ export default function AnimatedProductPage({ product }: { product: any }) {
         content_type: 'product',
         value: finalPrice,
         currency: 'PKR' 
+      }, { eventID: eventId });
+    }
+
+    // 2. Send to Server-Side (CAPI)
+    try {
+      await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'AddToCart',
+          eventId: eventId,
+          eventSourceUrl: window.location.href,
+          customData: {
+            content_name: product.title,
+            value: finalPrice,
+            currency: 'PKR'
+          }
+        }),
       });
+    } catch (err) {
+      console.error("CAPI AddToCart failed:", err);
     }
 
     addToCart(cartPayload);
