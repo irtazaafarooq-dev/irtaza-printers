@@ -315,7 +315,7 @@ export default function CheckoutPage() {
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                           <p className="font-bold text-neutral-900 text-xs md:text-sm">Online / Manual Transfer</p>
                           <span className="text-[9px] md:text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-200 w-fit">
-                            Free Shipping
+                            250 PKR
                           </span>
                         </div>
                         <p className="text-[10px] md:text-xs text-neutral-500 mt-1 md:mt-0">Pay via Bank Transfer, JazzCash, or EasyPaisa.</p>
@@ -326,13 +326,7 @@ export default function CheckoutPage() {
                     {paymentMethod === "Online" && (
                       <div className="mt-4 pt-4 border-t border-neutral-200 space-y-4 animate-in fade-in slide-in-from-top-2">
                         <div className="bg-neutral-50 p-3 md:p-4 rounded-lg text-[11px] md:text-xs text-neutral-700 space-y-3 border border-neutral-200">
-                          
-                          <div className="space-y-1">
-                            <p className="font-bold text-neutral-900 text-xs md:text-sm uppercase tracking-wider">FAYSAL BANK</p>
-                            <p>Account Title: <span className="font-medium">IRTAZA PRINTERS</span></p>
-                            <p>Account Number: <span className="font-medium">0186007000002649</span></p>
-                            <p className="break-all">IBAN: <span className="font-medium">PK71FAYS0186007000002649</span></p>
-                          </div>
+                        
 
                           <hr className="border-neutral-200" />
 
@@ -377,7 +371,7 @@ export default function CheckoutPage() {
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                         <p className="font-bold text-neutral-900 text-xs md:text-sm">Cash on Delivery</p>
                          <span className="text-[9px] md:text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
-                              Free Shipping
+                              350 PKR
                         </span>
                       </div>
                       <p className="text-[10px] md:text-xs text-neutral-500 mt-1 md:mt-0">Pay in cash when your order arrives.</p>

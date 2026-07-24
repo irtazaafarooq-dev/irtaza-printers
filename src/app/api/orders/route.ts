@@ -81,6 +81,45 @@ export async function POST(req: Request) {
     }
     // ===================================================================
 
+    // ===================================================================
+    // 3. SEND ORDER NOTIFICATION EMAIL TO YOU (BUSINESS OWNER)
+    // ===================================================================
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      await transporter.sendMail({
+        from: `"Irtaza Printers - New Order" <${process.env.EMAIL_USER}>`,
+        to: process.env.OWNER_EMAIL, // your personal/local email
+        subject: `🛒 New Order Received - #${newOrder._id.toString().slice(-6).toUpperCase()}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 10px;">
+            <h2 style="color: #171717;">📦 New Order Received!</h2>
+
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> #${newOrder._id.toString().slice(-6).toUpperCase()}</p>
+              <p style="margin: 5px 0;"><strong>Total Amount:</strong> Rs. ${newOrder.total.toLocaleString()}</p>
+              <p style="margin: 5px 0;"><strong>Customer Name:</strong> ${newOrder.customer.name}</p>
+              <p style="margin: 5px 0;"><strong>Customer Email:</strong> ${newOrder.customer.email}</p>
+              <p style="margin: 5px 0;"><strong>Customer Phone:</strong> ${newOrder.customer.phone || "N/A"}</p>
+            </div>
+
+            <p style="color: #525252;">Log in to your admin panel to view full order details and start processing it.</p>
+          </div>
+        `,
+      });
+    } catch (ownerEmailError) {
+      console.error("Owner Notification Email Failed:", ownerEmailError);
+    }
+    // ===================================================================
+
     return NextResponse.json({ success: true, orderId: newOrder._id }, { status: 201 });
 
   } catch (error) {
