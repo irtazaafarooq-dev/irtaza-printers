@@ -62,7 +62,7 @@ export default function CheckoutPage() {
   let shipping = 0;
   // Shipping logic based on discounted subtotal
   if (discountedSubtotal <= 10000) {
-    shipping = paymentMethod === "Online" ? 0 : 0; // Free shipping for both methods
+    shipping = paymentMethod === "Online" ? 250 : 350; // Free shipping for both methods
   }
   
   // Final Total calculation

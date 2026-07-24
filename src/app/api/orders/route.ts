@@ -13,30 +13,30 @@ export async function POST(req: Request) {
     // ===================================================================
     // 1. SEND WHATSAPP NOTIFICATION VIA WANOTIFIER
     // ===================================================================
-    try {
-      // ⚠️ IMPORTANT: Replace this URL with your unique WANotifier Webhook URL
-      await fetch("https://app.wanotifier.com/api/v1/notifications/DjE84i6buK?key=fcypmY3WgaOJlNFN4fVOxINfGpuY9o", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          data: {
-            body_variables: [
-              newOrder._id.toString().slice(-6).toUpperCase(), // This replaces {{1}}
-              newOrder.total.toLocaleString()                  // This replaces {{2}}
-            ]
-          },
-          recipients: [
-            {
-              whatsapp_number: "+923218442114" // Formatted exactly like the example
-            }
-          ]
-        })
-      });
-    } catch (waError) {
-      console.error("WANotifier WhatsApp Alert Failed:", waError);
-    }
+    // try {
+    //   // ⚠️ IMPORTANT: Replace this URL with your unique WANotifier Webhook URL
+    //   await fetch("https://app.wanotifier.com/api/v1/notifications/DjE84i6buK?key=fcypmY3WgaOJlNFN4fVOxINfGpuY9o", {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json"
+    //     },
+    //     body: JSON.stringify({
+    //       data: {
+    //         body_variables: [
+    //           newOrder._id.toString().slice(-6).toUpperCase(), // This replaces {{1}}
+    //           newOrder.total.toLocaleString()                  // This replaces {{2}}
+    //         ]
+    //       },
+    //       recipients: [
+    //         {
+    //           whatsapp_number: "+923218442114" // Formatted exactly like the example
+    //         }
+    //       ]
+    //     })
+    //   });
+    // } catch (waError) {
+    //   console.error("WANotifier WhatsApp Alert Failed:", waError);
+    // }
 
     // ===================================================================
     // 2. SEND CONFIRMATION EMAIL TO CUSTOMER
