@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle2, ChevronLeft, CreditCard, Tag } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import DiscountPopup from "./DiscountPopup";
 
 export default function CheckoutPage() {
   // CHANGED: Added 'coupon' from the store
@@ -14,6 +15,8 @@ export default function CheckoutPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [offer, setOffer] = useState<any>(null);
+  const [popupDiscountPercent, setPopupDiscountPercent] = useState(0);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -22,16 +25,29 @@ export default function CheckoutPage() {
     phone: "",
     address: "",
     city: "",
-    country: "Pakistan" 
+    country: "Pakistan"
   });
 
   // --- SMART PAYMENT LOGIC ---
   const requiresOnline = cart.some((item) => item.paymentMethod === "Online");
   const requiresCOD = cart.some((item) => item.paymentMethod === "COD");
-  
+
   const defaultPayment = requiresOnline ? "Online" : requiresCOD ? "COD" : "Online";
   const [paymentMethod, setPaymentMethod] = useState(defaultPayment);
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchOffer = async () => {
+      try {
+        const res = await fetch("/api/offers");
+        const data = await res.json();
+        if (data.success) setOffer(data.offer);
+      } catch (error) {
+        console.error("Failed to load offers:", error);
+      }
+    };
+    fetchOffer();
+  }, []);
 
   useEffect(() => {
     if (requiresOnline) setPaymentMethod("Online");
@@ -47,7 +63,7 @@ export default function CheckoutPage() {
   // --- NEW: DYNAMIC MATH LOGIC WITH COUPONS ---
   const subtotal = getCartTotal();
   let discountAmount = 0;
-  
+
   // Calculate discount if coupon exists
   if (coupon) {
     if (coupon.discountType === "percentage") {
@@ -59,14 +75,22 @@ export default function CheckoutPage() {
 
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
 
-  let shipping = 0;
-  // Shipping logic based on discounted subtotal
-  if (discountedSubtotal <= 10000) {
-    shipping = paymentMethod === "Online" ? 250 : 350; // Free shipping for both methods
+  let shipping = paymentMethod === "Online" ? 250 : 350;
+  let thresholdDiscountAmount = 0;
+
+  const thresholdOffer = offer?.thresholdOffer;
+  if (thresholdOffer?.enabled && discountedSubtotal >= thresholdOffer.minOrderAmount) {
+    if (thresholdOffer.type === "freeShipping") {
+      shipping = 0;
+    } else if (thresholdOffer.type === "discount") {
+      thresholdDiscountAmount = discountedSubtotal * (thresholdOffer.discountValue / 100);
+    }
   }
-  
+
+  const popupDiscountAmount = popupDiscountPercent > 0 ? discountedSubtotal * (popupDiscountPercent / 100) : 0;
+
   // Final Total calculation
-  const total = discountedSubtotal + shipping;
+  const total = Math.max(0, discountedSubtotal - thresholdDiscountAmount - popupDiscountAmount + shipping);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,9 +117,9 @@ export default function CheckoutPage() {
       customer: formData,
       items: cart,
       paymentMethod,
-      paymentProof, 
+      paymentProof,
       subtotal,
-      discount: discountAmount,
+      discount: discountAmount + thresholdDiscountAmount + popupDiscountAmount,
       couponCode: coupon?.code || null,
       shipping,
       total,
@@ -111,12 +135,12 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (response.ok) {
-        
+
         // ===================================================================
         // 🚀 META PIXEL & CONVERSIONS API TRACKING
         // ===================================================================
         try {
-          const uniqueEventId = uuidv4(); 
+          const uniqueEventId = uuidv4();
 
           // Format phone number to ensure it starts with a '+' symbol
           const formattedPhone = formData.phone.startsWith('+') ? formData.phone : `+${formData.phone}`;
@@ -126,8 +150,8 @@ export default function CheckoutPage() {
             eventId: uniqueEventId,
             eventSourceUrl: window.location.href,
             userData: {
-              email: formData.email, 
-              phone: formattedPhone  
+              email: formData.email,
+              phone: formattedPhone
             },
             customData: {
               currency: 'PKR',
@@ -153,6 +177,20 @@ export default function CheckoutPage() {
         }
         // ===================================================================
 
+        try {
+          const OneSignal = (window as any).OneSignal;
+          const playerId = OneSignal?.User?.PushSubscription?.id;
+          if (playerId) {
+            await fetch("/api/abandoned-cart", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ playerId }),
+            });
+          }
+        } catch (error) {
+          console.error("Failed to clear abandoned cart record:", error);
+        }
+
         setIsSubmitting(false);
         setOrderSuccess(true);
         clearCart(); // This will now also clear the coupon!
@@ -171,7 +209,7 @@ export default function CheckoutPage() {
   if (orderSuccess) {
     return (
       <main className="min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 flex items-center justify-center">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-md w-full bg-white p-6 md:p-8 rounded-3xl shadow-xl text-center border border-neutral-100"
@@ -208,18 +246,18 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-[#FDFBF7] pt-28 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 md:px-12">
       <div className="max-w-6xl mx-auto">
-        
+
         <Link href="/shop" className="inline-flex items-center text-[10px] md:text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-900 transition-colors mb-6 md:mb-8">
           <ChevronLeft size={16} className="mr-1" /> Back to Shop
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-20">
-          
+
           {/* RIGHT: ORDER SUMMARY */}
           <div className="lg:col-span-5 order-1 lg:order-2 relative">
             <div className="lg:sticky top-32 bg-white border border-neutral-200 rounded-[2rem] p-5 md:p-8 shadow-sm">
               <h2 className="text-lg font-serif text-neutral-900 mb-4 md:mb-6">Order Summary</h2>
-              
+
               {/* Items List */}
               <div className="space-y-4 md:space-y-6 max-h-[40vh] overflow-y-auto pr-2 scrollbar-hide">
                 {cart.map((item) => (
@@ -250,12 +288,25 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>Rs. {subtotal.toLocaleString()}</span>
                 </div>
-                
+
                 {/* CHANGED: Dynamic Discount Row */}
                 {coupon && (
                   <div className="flex justify-between items-center text-xs md:text-sm text-green-600 font-medium">
                     <span className="flex items-center gap-1"><Tag size={14} /> Code: {coupon.code}</span>
                     <span>- Rs. {discountAmount.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {thresholdDiscountAmount > 0 && (
+                  <div className="flex justify-between items-center text-xs md:text-sm text-green-600 font-medium">
+                    <span className="flex items-center gap-1"><Tag size={14} /> Order Discount</span>
+                    <span>- Rs. {thresholdDiscountAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {popupDiscountAmount > 0 && (
+                  <div className="flex justify-between items-center text-xs md:text-sm text-green-600 font-medium">
+                    <span className="flex items-center gap-1"><Tag size={14} /> Popup Discount</span>
+                    <span>- Rs. {popupDiscountAmount.toLocaleString()}</span>
                   </div>
                 )}
 
@@ -275,24 +326,24 @@ export default function CheckoutPage() {
           {/* LEFT: CHECKOUT FORM */}
           <div className="lg:col-span-7 order-2 lg:order-1 mt-4 lg:mt-0">
             <h1 className="text-3xl md:text-4xl font-serif text-neutral-900 mb-6 md:mb-8">Checkout</h1>
-            
+
             <form onSubmit={handlePlaceOrder} className="space-y-8 md:space-y-10">
-              
+
               {/* 1. Contact & Shipping */}
               <div className="space-y-3 md:space-y-4">
                 <h2 className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-neutral-900 mb-3 md:mb-4">Contact & Shipping</h2>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  <input required type="text" placeholder="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
-                  <input required type="email" placeholder="Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
+                  <input required type="text" placeholder="Full Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
+                  <input required type="email" placeholder="Email Address" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
                 </div>
-                
-                <input required type="tel" placeholder="Phone Number (e.g. 0300 1234567)" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
-                
-                <input required type="text" placeholder="Street Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
-                
+
+                <input required type="tel" placeholder="Phone Number (e.g. 0300 1234567)" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
+
+                <input required type="text" placeholder="Street Address" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  <input required type="text" placeholder="City" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
+                  <input required type="text" placeholder="City" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-white border border-neutral-200 rounded-xl outline-none focus:border-neutral-900 transition-colors" />
                   <input disabled type="text" value={formData.country} className="w-full p-3.5 md:p-4 text-sm md:text-base bg-neutral-50 border border-neutral-200 rounded-xl outline-none text-neutral-500 cursor-not-allowed" />
                 </div>
               </div>
@@ -300,10 +351,10 @@ export default function CheckoutPage() {
               {/* 2. Payment Method */}
               <div className="space-y-3 md:space-y-4">
                 <h2 className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-neutral-900 mb-3 md:mb-4">Payment Method</h2>
-                
+
                 <div className="space-y-3">
-                 {/* ONLINE PAYMENT OPTION */}
-                  <div 
+                  {/* ONLINE PAYMENT OPTION */}
+                  <div
                     className={`relative p-3.5 md:p-4 rounded-xl border-2 transition-all ${requiresCOD ? 'opacity-50 bg-neutral-100 border-neutral-200' : 'cursor-pointer'} ${paymentMethod === "Online" ? 'border-neutral-900 bg-white' : 'border-neutral-200 bg-transparent'}`}
                   >
                     <div className="flex items-start md:items-center gap-3 md:gap-4" onClick={() => !requiresCOD && setPaymentMethod("Online")}>
@@ -326,7 +377,7 @@ export default function CheckoutPage() {
                     {paymentMethod === "Online" && (
                       <div className="mt-4 pt-4 border-t border-neutral-200 space-y-4 animate-in fade-in slide-in-from-top-2">
                         <div className="bg-neutral-50 p-3 md:p-4 rounded-lg text-[11px] md:text-xs text-neutral-700 space-y-3 border border-neutral-200">
-                        
+
 
                           <hr className="border-neutral-200" />
 
@@ -342,8 +393,8 @@ export default function CheckoutPage() {
                           <label className="block text-[10px] md:text-xs font-bold text-neutral-900 mb-2 uppercase tracking-wider">
                             Upload Payment Screenshot *
                           </label>
-                          <input 
-                            type="file" 
+                          <input
+                            type="file"
                             accept="image/*"
                             onChange={handleImageUpload}
                             className="block w-full text-xs md:text-sm text-neutral-500 file:mr-3 md:file:mr-4 file:py-1.5 md:file:py-2 file:px-3 md:file:px-4 file:rounded-full file:border-0 file:text-[10px] md:file:text-xs file:font-bold file:bg-neutral-900 file:text-white hover:file:bg-neutral-800 cursor-pointer transition-colors"
@@ -359,7 +410,7 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* COD OPTION */}
-                  <div 
+                  <div
                     onClick={() => !requiresOnline && setPaymentMethod("COD")}
                     className={`relative p-3.5 md:p-4 rounded-xl border-2 flex items-start md:items-center gap-3 md:gap-4 transition-all ${requiresOnline ? 'opacity-50 bg-neutral-100 cursor-not-allowed border-neutral-200' : 'cursor-pointer'} ${paymentMethod === "COD" ? 'border-neutral-900 bg-white' : 'border-neutral-200 bg-transparent'}`}
                   >
@@ -370,8 +421,8 @@ export default function CheckoutPage() {
                     <div className="flex-1 w-full">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-1 sm:gap-0">
                         <p className="font-bold text-neutral-900 text-xs md:text-sm">Cash on Delivery</p>
-                         <span className="text-[9px] md:text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
-                              350 PKR
+                        <span className="text-[9px] md:text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
+                          350 PKR
                         </span>
                       </div>
                       <p className="text-[10px] md:text-xs text-neutral-500 mt-1 md:mt-0">Pay in cash when your order arrives.</p>
@@ -381,8 +432,8 @@ export default function CheckoutPage() {
               </div>
 
               {/* Submit Button */}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSubmitting}
                 className="w-full bg-neutral-900 text-[#FDFBF7] py-4 md:py-5 rounded-xl text-xs md:text-sm uppercase tracking-widest font-bold hover:bg-neutral-800 transition-all active:scale-[0.98] disabled:opacity-70 flex justify-center items-center shadow-lg shadow-neutral-900/20"
               >
@@ -393,6 +444,13 @@ export default function CheckoutPage() {
           </div>
 
         </div>
+        {offer?.popupOffer?.enabled && popupDiscountPercent === 0 && (
+          <DiscountPopup
+            discountPercentage={offer.popupOffer.discountPercentage}
+            delaySeconds={offer.popupOffer.delaySeconds}
+            onApply={(contact) => setPopupDiscountPercent(offer.popupOffer.discountPercentage)}
+          />
+        )}
       </div>
     </main>
   );

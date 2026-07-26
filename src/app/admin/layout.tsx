@@ -82,6 +82,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
          <Link href="/admin/coupons" onClick={closeSidebar} className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-800 hover:text-white transition-colors">
             <FileText size={18} /> <span className="text-sm font-medium">Coupon</span>
           </Link>
+
+          <Link href="/admin/faqs" onClick={closeSidebar} className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-800 hover:text-white transition-colors">
+            <FileText size={18} /> <span className="text-sm font-medium">FAQs</span>
+          </Link>
+          <Link href="/admin/offers" onClick={closeSidebar} className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-800 hover:text-white transition-colors">
+            <FileText size={18} /> <span className="text-sm font-medium">Discount Offers</span>
+          </Link>
         </nav>
 
         

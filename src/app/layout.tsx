@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import OneSignalInit from "@/components/OneSignalInit";
+import CartTracker from "@/components/CartTracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +28,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased relative min-h-screen overflow-x-hidden`}>
         {/* We just render children here! The specific layouts handle the rest. */}
+        <OneSignalInit />
+        <CartTracker />
         {children}
       </body>
     </html>

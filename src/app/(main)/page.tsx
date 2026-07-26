@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import ProductGrid from "@/components/ProductGrid";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import Reviews from "@/components/Reviews";
+import FAQSection from "@/components/FAQSection";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/lib/models/Product";
 // import Footer from "@/components/Footer";
@@ -19,6 +20,7 @@ export default async function Home() {
       <Hero bestSellers={serializedProducts} />
       <ProductGrid/>
       <WhyChooseUs />
+      <FAQSection />
       <Reviews />
     </div>
   );
