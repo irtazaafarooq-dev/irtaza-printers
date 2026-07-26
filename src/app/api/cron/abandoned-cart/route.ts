@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   try {
     await connectToDatabase();
 
-    const thirtyMinutesAgo = new Date(Date.now() - 1 * 60 * 1000);
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
     const abandonedCarts = await AbandonedCart.find({
       notified: false,
