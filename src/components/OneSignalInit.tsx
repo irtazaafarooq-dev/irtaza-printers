@@ -5,7 +5,7 @@ import Script from "next/script";
 export default function OneSignalInit() {
   return (
     <>
-      <Script src="https://cdn.onesignal.com/sdks/OneSignalSDK.page.js" strategy="afterInteractive" />
+      <Script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" strategy="afterInteractive" />
       <Script id="onesignal-init" strategy="afterInteractive">
         {`
           window.OneSignalDeferred = window.OneSignalDeferred || [];
