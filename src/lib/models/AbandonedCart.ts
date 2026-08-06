@@ -6,6 +6,7 @@ const AbandonedCartSchema = new Schema(
     cartItems: { type: Array, default: [] },
     cartTotal: { type: Number, default: 0 },
     notified: { type: Boolean, default: false },
+    qstashMessageId: { type: String, default: null },
     lastUpdated: { type: Date, default: Date.now },
   },
   { timestamps: true }
